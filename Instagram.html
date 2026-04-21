@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>YouTube Kemah 2026 - Redmi Fix</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            background: #0f0f0f;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+        }
+        .container {
+            background: #202020;
+            border-radius: 24px;
+            padding: 24px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+        }
+        .header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; border-bottom: 1px solid #3f3f3f; padding-bottom: 16px; }
+        .youtube-icon { background: #ff0000; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+        h1 { color: white; font-size: 20px; }
+        .preview { background: #2a2a2a; border-radius: 16px; padding: 16px; margin-bottom: 24px; border-left: 4px solid #ff0000; }
+        .preview-title { color: #ff0000; font-size: 12px; font-weight: bold; }
+        .preview-content { color: white; font-size: 16px; font-weight: 600; margin: 8px 0; }
+        .preview-channel { color: #aaa; font-size: 12px; }
+        .timer-box { background: #2a2a2a; border-radius: 16px; padding: 20px; margin-bottom: 20px; text-align: center; }
+        .timer-input { background: #3f3f3f; border: none; color: white; font-size: 32px; font-weight: bold; text-align: center; padding: 12px; border-radius: 12px; width: 120px; margin: 10px auto; display: block; }
+        .btn-group { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin: 15px 0; }
+        .quick-btn { background: #3f3f3f; border: none; color: white; padding: 8px 16px; border-radius: 20px; font-size: 14px; }
+        .send-btn { background: #ff0000; width: 100%; border: none; padding: 16px; border-radius: 40px; color: white; font-weight: bold; font-size: 18px; margin-top: 10px; }
+        .status { background: #00000040; padding: 12px; border-radius: 12px; margin-top: 20px; text-align: center; font-size: 14px; color: #aaa; }
+        .warning { background: #ff000020; color: #ff8888; padding: 12px; border-radius: 12px; margin-bottom: 20px; font-size: 12px; text-align: center; }
+        .countdown { font-size: 48px; font-weight: bold; color: #ff0000; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="youtube-icon">▶️</div>
+            <h1>Notifikasi YouTube</h1>
+        </div>
+
+        <div class="preview">
+            <div class="preview-title">🔔 NOTIFIKASI SIAP DIKIRIM</div>
+            <div class="preview-content">VideoCreative Persiapan Kemah Besar 2026 X SIJA A</div>
+            <div class="preview-channel">YouTube · VideoCreative</div>
+        </div>
+
+        <div class="warning" id="batteryWarning">
+            ⚠️ PASTIKAN <strong>Chrome</strong> sudah diatur ke <strong>"Tanpa Batasan"</strong> di pengaturan baterai HP.
+        </div>
+
+        <div class="timer-box">
+            <label style="color:#aaa;">⏱️ Timer (Detik)</label>
+            <input type="number" id="timerInput" value="15" class="timer-input" min="3" max="300">
+            <div class="btn-group">
+                <button class="quick-btn" onclick="setTime(5)">5 detik</button>
+                <button class="quick-btn" onclick="setTime(10)">10 detik</button>
+                <button class="quick-btn" onclick="setTime(15)">15 detik</button>
+                <button class="quick-btn" onclick="setTime(30)">30 detik</button>
+                <button class="quick-btn" onclick="setTime(60)">60 detik</button>
+            </div>
+        </div>
+
+        <button class="send-btn" id="sendBtn" onclick="requestAndStart()">🔔 KIRIM NOTIFIKASI</button>
+
+        <div class="status" id="statusArea">
+            ⚡ Siap. Klik tombol di atas.
+        </div>
+    </div>
+
+    <script>
+        let timerInterval = null;
+        let wakeLock = null;
+
+        // Fungsi untuk menjaga layar tetap menyala (Wake Lock)
+        async function requestWakeLock() {
+            if ('wakeLock' in navigator) {
+                try {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    updateStatus("✅ Layar akan tetap menyala (Wake Lock aktif)");
+                    // Re-acquire jika halaman di-refocus
+                    document.addEventListener('visibilitychange', async () => {
+                        if (wakeLock !== null && document.visibilityState === 'visible') {
+                            wakeLock = await navigator.wakeLock.request('screen');
+                        }
+                    });
+                } catch (err) {
+                    updateStatus("⚠️ Wake Lock tidak didukung browser ini.");
+                }
+            }
+        }
+
+        function setTime(sec) {
+            document.getElementById('timerInput').value = sec;
+        }
+
+        function updateStatus(msg) {
+            const statusDiv = document.getElementById('statusArea');
+            statusDiv.innerHTML = `⏰ ${msg} <br> <small>${new Date().toLocaleTimeString()}</small>`;
+            console.log(msg);
+        }
+
+        async function requestAndStart() {
+            // 1. Minta Izin Notifikasi
+            if (!("Notification" in window)) {
+                alert("Browser tidak support notifikasi");
+                return;
+            }
+
+            if (Notification.permission === "default") {
+                const permission = await Notification.requestPermission();
+                if (permission !== "granted") {
+                    alert("Izin notifikasi ditolak!");
+                    return;
+                }
+            }
+
+            if (Notification.permission !== "granted") {
+                alert("Izin notifikasi belum diberikan. Cek pengaturan Chrome.");
+                return;
+            }
+
+            // 2. Minta Wake Lock biar timer gak mati saat screen off (usahakan)
+            if (wakeLock === null) {
+                await requestWakeLock();
+            }
+
+            // 3. Ambil nilai timer
+            let seconds = parseInt(document.getElementById('timerInput').value);
+            if (isNaN(seconds) || seconds < 1) seconds = 3;
+            
+            startCountdown(seconds);
+        }
+
+        function startCountdown(seconds) {
+            if (timerInterval) clearInterval(timerInterval);
+            
+            let remaining = seconds;
+            const btn = document.getElementById('sendBtn');
+            
+            updateStatus(`Timer dimulai! Notifikasi dalam ${remaining} detik. Jangan tutup tab ini.`);
+            
+            // Tampilkan countdown di tombol
+            btn.innerHTML = `⏳ Mengirim dalam ${remaining} detik...`;
+            btn.disabled = true;
+            
+            timerInterval = setInterval(() => {
+                remaining--;
+                btn.innerHTML = `⏳ Mengirim dalam ${remaining} detik...`;
+                
+                if (remaining <= 0) {
+                    clearInterval(timerInterval);
+                    timerInterval = null;
+                    sendFinalNotification();
+                    btn.innerHTML = "✅ Notifikasi Terkirim!";
+                    setTimeout(() => {
+                        btn.innerHTML = "🔔 KIRIM NOTIFIKASI";
+                        btn.disabled = false;
+                    }, 2000);
+                }
+            }, 1000);
+        }
+
+        function sendFinalNotification() {
+            const judul = "VideoCreative Persiapan Kemah Besar 2026 X SIJA A";
+            
+            // KONFIGURASI KHUSUS ANDROID: HAPUS requireInteraction, tambahkan sound & vibrate
+            const options = {
+                body: "🎥 Klik untuk menonton video persiapan kemah besar 2026!",
+                icon: "https://www.youtube.com/s/desktop/0149cbe6/img/favicon_144x144.png",
+                badge: "https://www.youtube.com/s/desktop/0149cbe6/img/favicon_96x96.png",
+                tag: "youtube_kemah_2026",
+                renotify: true,
+                silent: false,
+                vibrate: [200, 100, 200], // Biar HP getar
+                sound: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" // Opsional: suara default tidak akan jalan karena HTTPS? biarkan saja
+            };
+            
+            try {
+                const notification = new Notification(judul, options);
+                
+                notification.onclick = () => {
+                    window.open("https://youtube.com", "_blank");
+                    notification.close();
+                };
+                
+                updateStatus("✅ NOTIFIKASI BERHASIL DIKIRIM! Cek tirai notifikasi HP Anda.");
+                
+                // Tambahan untuk Redmi: Beri alert kecil biar HP "bangun" sedikit
+                setTimeout(() => {
+                    // Ini trik: getar dikit via JS (kalau user sudah interaksi)
+                    if (navigator.vibrate) navigator.vibrate(500);
+                }, 100);
+                
+            } catch (e) {
+                updateStatus("❌ Gagal: " + e.message);
+            }
+        }
+    </script>
+</body>
+</html>
