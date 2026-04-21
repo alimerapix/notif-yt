@@ -1,1 +1,3 @@
-// service worker
+self.addEventListener('push', function(event) {
+    console.log('Push received');
+});
